@@ -45,3 +45,12 @@ export interface StudySession {
   duration: number; // in minutes
   topic?: string;
 }
+
+export interface Chapter {
+  id: string;
+  subjectId: string;
+  title: string;
+  description?: string;
+  order: number;
+  status: 'pending' | 'in-progress' | 'completed';
+}

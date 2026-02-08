@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Subject, Assignment, Experiment, TimetableSlot, StudySession } from '@/types/academic';
+import { Subject, Assignment, Experiment, TimetableSlot, StudySession, Chapter } from '@/types/academic';
 
 interface AcademicContextType {
   subjects: Subject[];
@@ -7,6 +7,7 @@ interface AcademicContextType {
   experiments: Experiment[];
   timetable: TimetableSlot[];
   studySessions: StudySession[];
+  chapters: Chapter[];
   addSubject: (subject: Omit<Subject, 'id'>) => void;
   updateSubject: (id: string, subject: Partial<Subject>) => void;
   deleteSubject: (id: string) => void;
@@ -20,7 +21,11 @@ interface AcademicContextType {
   updateTimetableSlot: (id: string, slot: Partial<TimetableSlot>) => void;
   deleteTimetableSlot: (id: string) => void;
   addStudySession: (session: Omit<StudySession, 'id'>) => void;
+  addChapter: (chapter: Omit<Chapter, 'id'>) => void;
+  updateChapter: (id: string, chapter: Partial<Chapter>) => void;
+  deleteChapter: (id: string) => void;
   getSubjectById: (id: string) => Subject | undefined;
+  getChaptersBySubject: (subjectId: string) => Chapter[];
 }
 
 const AcademicContext = createContext<AcademicContextType | undefined>(undefined);
@@ -33,6 +38,7 @@ const STORAGE_KEYS = {
   experiments: 'academic_experiments',
   timetable: 'academic_timetable',
   studySessions: 'academic_study_sessions',
+  chapters: 'academic_chapters',
 };
 
 export function AcademicProvider({ children }: { children: React.ReactNode }) {
@@ -70,6 +76,11 @@ export function AcademicProvider({ children }: { children: React.ReactNode }) {
     return [];
   });
 
+  const [chapters, setChapters] = useState<Chapter[]>(() => {
+    const stored = localStorage.getItem(STORAGE_KEYS.chapters);
+    return stored ? JSON.parse(stored) : [];
+  });
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.subjects, JSON.stringify(subjects));
   }, [subjects]);
@@ -90,6 +101,10 @@ export function AcademicProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem(STORAGE_KEYS.studySessions, JSON.stringify(studySessions));
   }, [studySessions]);
 
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.chapters, JSON.stringify(chapters));
+  }, [chapters]);
+
   const addSubject = (subject: Omit<Subject, 'id'>) => {
     setSubjects((prev) => [...prev, { ...subject, id: generateId() }]);
   };
@@ -103,6 +118,7 @@ export function AcademicProvider({ children }: { children: React.ReactNode }) {
     setAssignments((prev) => prev.filter((a) => a.subjectId !== id));
     setExperiments((prev) => prev.filter((e) => e.subjectId !== id));
     setTimetable((prev) => prev.filter((t) => t.subjectId !== id));
+    setChapters((prev) => prev.filter((c) => c.subjectId !== id));
   };
 
   const addAssignment = (assignment: Omit<Assignment, 'id'>) => {
@@ -145,7 +161,22 @@ export function AcademicProvider({ children }: { children: React.ReactNode }) {
     setStudySessions((prev) => [...prev, { ...session, id: generateId() }]);
   };
 
+  const addChapter = (chapter: Omit<Chapter, 'id'>) => {
+    setChapters((prev) => [...prev, { ...chapter, id: generateId() }]);
+  };
+
+  const updateChapter = (id: string, chapter: Partial<Chapter>) => {
+    setChapters((prev) => prev.map((c) => (c.id === id ? { ...c, ...chapter } : c)));
+  };
+
+  const deleteChapter = (id: string) => {
+    setChapters((prev) => prev.filter((c) => c.id !== id));
+  };
+
   const getSubjectById = (id: string) => subjects.find((s) => s.id === id);
+
+  const getChaptersBySubject = (subjectId: string) => 
+    chapters.filter((c) => c.subjectId === subjectId).sort((a, b) => a.order - b.order);
 
   return (
     <AcademicContext.Provider
@@ -155,6 +186,7 @@ export function AcademicProvider({ children }: { children: React.ReactNode }) {
         experiments,
         timetable,
         studySessions,
+        chapters,
         addSubject,
         updateSubject,
         deleteSubject,
@@ -168,7 +200,11 @@ export function AcademicProvider({ children }: { children: React.ReactNode }) {
         updateTimetableSlot,
         deleteTimetableSlot,
         addStudySession,
+        addChapter,
+        updateChapter,
+        deleteChapter,
         getSubjectById,
+        getChaptersBySubject,
       }}
     >
       {children}
